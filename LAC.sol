@@ -65,6 +65,8 @@ contract LoveAirCoffee is ERC20 {
     
     function startBuyingTokens(bool _transferTokenNow,uint256 _minEther,uint256 _maxEther) public onlyOwner {
         require(state == State.Disabled);
+        require(_minEther > 0);
+        require(_maxEther > _minEther);
         transferTokenNow = _transferTokenNow;
         minEther = _minEther * 10 ** uint256(decimals);
         maxEther = _maxEther * 10 ** uint256(decimals);
