@@ -25,8 +25,6 @@ contract LoveAirCoffee is ERC20 {
     string public name="Love Air Coffee";
     string public symbol="LAC";
     uint8 public decimals = 18;
-
-    uint256 public totalSupply; 
     
     uint256 public tokensPerOneEther;
     
@@ -88,7 +86,6 @@ contract LoveAirCoffee is ERC20 {
         require(state == State.Enabled);
         require(tokensPerOneEther > 0);
         require(msg.value >= minEther && msg.value <= maxEther);
-        require(state == State.Enabled);
         if(transferTokenNow){
             uint256 tokens = (tokensPerOneEther * msg.value);
            _transfer(owner, msg.sender, tokens);   // makes the transferss 
