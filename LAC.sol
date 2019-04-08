@@ -32,8 +32,6 @@ contract LoveAirCoffee is ERC20 {
     
     bool public transferTokenNow=true;
     
-    bool public frozenCoin=true;
-    
     uint256 public minEther;
     uint256 public maxEther;
 
@@ -79,10 +77,6 @@ contract LoveAirCoffee is ERC20 {
         require(state == State.Enabled);
         state = State.Disabled;
     }
-    
-    function setFrozenCoin(bool _value) public onlyOwner {
-        frozenCoin = _value;
-    }
 
     // NewBuyPrice Price users can buy from the contract
     function setPrices(uint256 newBuyPrice) onlyOwner public {
@@ -122,14 +116,12 @@ contract LoveAirCoffee is ERC20 {
 
     // Transfer tokens
     function transfer(address _to, uint256 _value) public returns (bool success) {
-         require(!frozenCoin);
         _transfer(msg.sender, _to, _value);
         return true;
     }
 
     // Transfer tokens from other address
     function transferFrom(address _from, address _to, uint256 _value) public returns (bool success) {
-        require(!frozenCoin);
         require(_value <= allowed[_from][msg.sender]);     // Check allowance
         allowed[_from][msg.sender] -= _value;
         _transfer(_from, _to, _value);
@@ -146,7 +138,6 @@ contract LoveAirCoffee is ERC20 {
 
     //Destroy tokens
     function burn(uint256 _value) public returns (bool success) {
-        require(!frozenCoin);
         require(balanceOf[msg.sender] >= _value);   // Check if the sender has enough
         balanceOf[msg.sender] -= _value;            // Subtract from the sender
         totalSupply -= _value;                      // Updates totalSupply
@@ -156,7 +147,6 @@ contract LoveAirCoffee is ERC20 {
 
     //Destroy tokens from other account
     function burnFrom(address _from, uint256 _value) public returns (bool success) {
-        require(!frozenCoin);
         require(balanceOf[_from] >= _value);                // Check if the targeted balance is enough
         require(_value <= allowed[_from][msg.sender]);    // Check allowance
         balanceOf[_from] -= _value;                         // Subtract from the targeted balance
