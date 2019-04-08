@@ -86,6 +86,7 @@ contract LoveAirCoffee is ERC20 {
     // Buy tokens
     function () payable external {
         require(state == State.Enabled);
+        require(tokensPerOneEther > 0);
         require(msg.value >= minEther && msg.value <= maxEther);
         require(state == State.Enabled);
         if(transferTokenNow){
