@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity >=0.4.0 < 0.7.0;
 
 contract ERC20Basic {
     uint256 public totalSupply;
@@ -21,14 +21,15 @@ contract LoveAirCoffee is ERC20 {
     mapping (address => uint256) public balanceOf;
     mapping (address => mapping (address => uint256)) public allowed;
     
+    bool public coinWasBlocked = false;
+    bool public frozenCoin = false;
+    
     // Public variables of the token
     string public name="Love Air Coffee";
     string public symbol="LAC";
     uint8 public decimals = 18;
     
     uint256 public tokensPerOneEther;
-    
-    bool public transferTokenNow=true;
     
     uint256 public minEther;
     uint256 public maxEther;
@@ -57,25 +58,35 @@ contract LoveAirCoffee is ERC20 {
         }
     }
     
-    function LoveAirCoffee(uint256 initialSupply) public{
+    constructor(uint256 initialSupply) public {
         totalSupply = initialSupply * 10 ** uint256(decimals);
         balanceOf[msg.sender]=totalSupply;
         emit Transfer(address(0),owner,totalSupply);
     }
     
-    function startBuyingTokens(bool _transferTokenNow,uint256 _minEther,uint256 _maxEther) public onlyOwner {
+    // Start Buying Tokens
+    function startBuyingTokens(uint256 _minEther,uint256 _maxEther) public onlyOwner {
         require(state == State.Disabled);
+        require(tokensPerOneEther > 0);
         require(_minEther > 0);
         require(_maxEther > _minEther);
-        transferTokenNow = _transferTokenNow;
+        
+        // Hold Tokens for first stage
+        if(!coinWasBlocked){
+            frozenCoin = true;   
+            coinWasBlocked = true;
+        }
+        
         minEther = _minEther * 10 ** uint256(decimals);
         maxEther = _maxEther * 10 ** uint256(decimals);
         state = State.Enabled;
     }
     
+    // Stop Buying Tokens
     function stopBuyingTokens() public onlyOwner {
         require(state == State.Enabled);
         state = State.Disabled;
+        frozenCoin = false;
     }
 
     // NewBuyPrice Price users can buy from the contract
@@ -88,11 +99,9 @@ contract LoveAirCoffee is ERC20 {
         require(state == State.Enabled);
         require(tokensPerOneEther > 0);
         require(msg.value >= minEther && msg.value <= maxEther);
-        if(transferTokenNow){
-            uint256 tokens = (tokensPerOneEther * msg.value);
-           _transfer(owner, msg.sender, tokens);   // makes the transferss 
-        }
-
+        
+        uint256 tokens = (tokensPerOneEther * msg.value);
+        _transfer(owner, msg.sender, tokens);   // makes the transferss 
         owner.transfer(msg.value);
     }
     
@@ -106,7 +115,7 @@ contract LoveAirCoffee is ERC20 {
 
     /* Internal transfer, only can be called by this contract */
     function _transfer(address _from, address _to, uint256 _value) internal {
-        require( _to != address(this));
+        require( _to != address(this)); 
         require (_to != address(0x0));                          // Prevent transfer to 0x0 address. Use burn() instead
         require (balanceOf[_from] >= _value);                   // Check if the sender has enough
         require (balanceOf[_to] + _value >= balanceOf[_to]);    // Check for overflows
@@ -117,12 +126,14 @@ contract LoveAirCoffee is ERC20 {
 
     // Transfer tokens
     function transfer(address _to, uint256 _value) public returns (bool success) {
+        require(!frozenCoin);               // Check if not frozenCoin 
         _transfer(msg.sender, _to, _value);
         return true;
     }
 
     // Transfer tokens from other address
     function transferFrom(address _from, address _to, uint256 _value) public returns (bool success) {
+        require(!frozenCoin);                               // Check if not frozenCoin
         require(_value <= allowed[_from][msg.sender]);     // Check allowance
         allowed[_from][msg.sender] -= _value;
         _transfer(_from, _to, _value);
@@ -139,6 +150,7 @@ contract LoveAirCoffee is ERC20 {
 
     //Destroy tokens
     function burn(uint256 _value) public returns (bool success) {
+        require(!frozenCoin);                       // Check if not hold token 
         require(balanceOf[msg.sender] >= _value);   // Check if the sender has enough
         balanceOf[msg.sender] -= _value;            // Subtract from the sender
         totalSupply -= _value;                      // Updates totalSupply
@@ -148,11 +160,12 @@ contract LoveAirCoffee is ERC20 {
 
     //Destroy tokens from other account
     function burnFrom(address _from, uint256 _value) public returns (bool success) {
-        require(balanceOf[_from] >= _value);                // Check if the targeted balance is enough
+        require(balanceOf[_from] >= _value);              // Check if the targeted balance is enough
         require(_value <= allowed[_from][msg.sender]);    // Check allowance
-        balanceOf[_from] -= _value;                         // Subtract from the targeted balance
+        require(!frozenCoin);                             // Check if not frozenCoin
+        balanceOf[_from] -= _value;                       // Subtract from the targeted balance
         allowed[_from][msg.sender] -= _value;             // Subtract from the sender's allowance
-        totalSupply -= _value;                              // Update totalSupply
+        totalSupply -= _value;                            // Update totalSupply
         emit Burn(_from, _value);
         return true;
     }
